@@ -67,11 +67,15 @@ def geo_groupby(df, column='country', season=None):
     new_df = df.groupby(column, as_index=False).apply(geo_map_conditions)
     return new_df
 
-def make_geo_map(df):
-    ''' Creates a plotly scatter geo plot based on a DataFrame on Olympic data '''
+def make_geo_map(df, season=None):
+    ''' Creates a plotly scatter geo plot based on a DataFrame on Olympic data
+        Can specify season: Summer or Winter
+    '''
     import plotly.express as px
+    df = geo_groupby(df, season=season)
     fig = px.scatter_geo(df, locations="iso_alpha",
                         hover_name="country",
+                        hover_data=["golds", "silvers","bronzes"],
                         size="mean",
                         color="total",
                         range_color=(0,3000),
