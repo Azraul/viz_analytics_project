@@ -39,7 +39,25 @@ def adjust_country_name(country):
             return "Tanzania, United Republic of"
         case _ :
             return country
-        
+
+       
+def split_game_type(df, game_type):
+    ''' Splits the df for a certain game_type
+        - Summer or Winter
+    '''
+    if game_type == "Summer" or game_type == "Winter":
+        df = df.loc[df['games_type'] == game_type]
+    return df
+
+def split_by_years(df, selected_years):
+    ''' Splits a DataFrame in the year column based on a list
+        of years and returns it
+        - selected_years[start_year, end_year]
+    '''
+    df = df[~(df['year'] < selected_years[0])]
+    df = df[~(df['year'] > selected_years[1])]
+    return df
+
 def geo_map_conditions(x):
     ''' Multicondition apply function for geo maps, built using:
         https://stackoverflow.com/a/47103408
@@ -56,29 +74,29 @@ def geo_map_conditions(x):
     d['mean'] = x['olympic_medals'].mean()
     return pd.Series(d, index=['country','iso_alpha','golds', 'silvers', 'bronzes', 'total', 'mean'])
 
-def geo_groupby(df, column='country', season=None):
+def geo_groupby(df, column='country', game_type=None):
     ''' Uses standard groupby with preset conditions for geo_maps
         User can specify season Winter/Summer. Default both
     '''
-    import pandas as pd
-    if season != None:
-        df = df.loc[df['games_type'] == season]
-
+    df = split_game_type(df, game_type)
     new_df = df.groupby(column, as_index=False).apply(geo_map_conditions)
     return new_df
 
-def make_geo_map(df, season=None):
+
+
+def make_geo_map(df, selected_years, game_type=None):
     ''' Creates a plotly scatter geo plot based on a DataFrame on Olympic data
         Can specify season: Summer or Winter
     '''
     import plotly.express as px
-    df = geo_groupby(df, season=season)
+    df = split_by_years(df, selected_years)
+    df = geo_groupby(df, game_type=game_type)
     fig = px.scatter_geo(df, locations="iso_alpha",
                         hover_name="country",
                         hover_data=["golds", "silvers","bronzes"],
-                        size="mean",
-                        color="total",
-                        range_color=(0,3000),
+                        size="total",
+                        color="mean",
+                        #range_color=(0,3000),
                         projection="natural earth"
                         )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}) # Zooms the map by default
@@ -107,7 +125,6 @@ def clean_olympics(df):
     ''' Tailored function to clean DataFrame
         See notebook for reasoning
     '''
-    import pandas as pd
     # Drop Mixed teams
     df = df.drop(df.loc[df['country'] == "Mixed team"].index)
     # Fix Serbia & Kuwait
@@ -115,10 +132,32 @@ def clean_olympics(df):
     df.loc[816, "country"] = "Serbia"
     return df
 
+def summer_winter_games(df):
+    ''' Static simple composition showing summer vs winter games '''
+    import plotly.express as px
+    df = df["games_type"].value_counts(dropna=False)
+    fig = px.pie(
+        df,
+        values=df.values,
+        names=df.keys()
+        )
+    return fig
+
+def host_by_country(df):
+    ''' Static bar chart showing host by country comparision'''
+    ## Host by country
+    import plotly.express as px
+    df = df.groupby(["year"], as_index=False)["host_country"].max()
+    fig = px.bar(
+        x=df["host_country"].unique(),
+        y=df["host_country"].value_counts(dropna=False),
+        color=df["host_country"].unique()
+        )
+    return fig
+
 
 def set_countries_alpha(df, column):
     ''' Gets all the alpha codes from select country column'''
-    import pandas as pd
     df["iso_alpha"] = df[column].apply(lambda x: get_country_alpha(x))
     return df
 
@@ -131,7 +170,6 @@ def pie_plot_medals(df, country=None, year=None):
     ''' Takes a DataFrame and returns a pie chart on medal distributions
         Optinal: country and/or year for more specific charts
     '''
-    import pandas as pd
     import plotly_express as px
     medals = ["gold", "silver", "bronze"]
     if country != None and year != None:  
@@ -147,20 +185,30 @@ def pie_plot_medals(df, country=None, year=None):
     fig.update_layout(legend={"title":"Medals"})
     return fig
 
-def bar_distribution_maker(df):
+def bar_distribution_maker(df, selected_years, game_type):
     ''' Takes a DataFrame and returns a column chart on distributions
+         - Can be specified to 
         Columns: athletes, teams or	competitions
     '''
     import pandas as pd
     import plotly_express as px
     import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    df = split_game_type(df, game_type)
     columns = ["athletes", "teams", "competitions"]
-    __df = df.groupby(["year"], as_index=False)[columns].max().T
-    # make first row header
-    new_header = __df.iloc[0]
-    __df = __df[1:]
-    __df.columns = new_header
-    fig = go.Figure()
-    fig = px.bar(__df.T)
-    fig.update_layout(legend={"title":"Variables - click to exclude"})
+    # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    df = split_by_years(df, selected_years)
+    secondary = [0,1,1]
+    for i, c in enumerate(columns):
+        __df = df.groupby(["year"], as_index=False)[c].max().T
+        # make first row header
+        new_header = __df.iloc[0]
+        __df = __df[1:]
+        __df.columns = new_header
+        fig.add_trace(go.Scatter(x=__df.T.index, y=__df.T[c], name=str(c)),secondary_y=secondary[i])
+    
+    fig.update_layout(legend={"title":None})
+    fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
+    fig.update_layout(yaxis1={"title": "Athelets"},yaxis2={"title": "Teams & Competitions"},)
     return fig
