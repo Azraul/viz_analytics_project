@@ -2,64 +2,52 @@
 
 import pandas as pd
 from dash import Dash, dcc, html
-from functions import set_countries_alpha, clean_olympics
+import functions
 
 data = (
     pd.read_csv("olympic_games.csv")
 )
 
-data = clean_olympics(data)
-data = set_countries_alpha(data, "country")
+# Change names to iso names
+data = functions.set_country_names(data)
+# Grab iso codes
+data = functions.clean_olympics(data)
+data = functions.set_countries_alpha(data, "country")
+# Make a new column with total amount of medals per row
+data = functions.set_olympic_medals(data)
+
+fig = functions.bar_distribution_maker(data)
+fig2 = functions.pie_plot_medals(data)
 
 app = Dash(__name__)
 
-app.layout = html.Div(
-    children=[
-        html.H1(children="Avocado Analytics"),
-        html.P(
-            children=(
-                "Analyze the behavior of avocado prices and the number"
-                " of avocados sold in the US between 2015 and 2018"
-            ),
-        ),
-        dcc.Graph(
-            figure={
-                "data": [
-                    {
-                        "x": data["host_country"],
-                        "y": data["year"],
-                        "type": "lines",
-                    },
-                ],
-                "layout": {"title": "Average Price of Avocados"},
-            },
-        ),
-        dcc.Graph(
-            figure={
-                "data": [
-                    {
-                        "x": data["host_country"],
-                        "y": data["games_type"],
-                        "type": "lines",
-                    },
-                ],
-                "layout": {"title": "Avocados Sold"},
-            },
-        ),
-        dcc.Graph(
-            figure={
-                "data": [
-                    {
-                        "x": data["host_city"],
-                        "y": data["games_type"],
-                        "type": "lines",
-                    },
-                ],
-                "layout": {"title": "Avocados solded"},
-            },
-        ),
-    ]
-)
+app.layout = html.Div(children=[
+    # All elements from the top of the page
+    html.Div([
+        html.H1(children='Hello Dash'),
 
-if __name__ == "__main__":
-    app.run_server(debug=True)
+        html.Div(children='''
+            Dash: A web application framework for Python.
+        '''),
+
+        dcc.Graph(
+            id='graph1',
+            figure=fig
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H1(children='Hello Dash'),
+
+        html.Div(children='''
+            Dash: A web application framework for Python.
+        '''),
+
+        dcc.Graph(
+            id='graph2',
+            figure=fig2
+        ),  
+    ]),
+])
+
+app.run_server(debug=True)

@@ -43,6 +43,7 @@ def adjust_country_name(country):
 def geo_map_conditions(x):
     ''' Multicondition apply function for geo maps, built using:
         https://stackoverflow.com/a/47103408
+        - We want relevant medals data to plot on a scatter geo map
     '''
     import pandas as pd
     d = {}
@@ -65,6 +66,22 @@ def geo_groupby(df, column='country', season=None):
 
     new_df = df.groupby(column, as_index=False).apply(geo_map_conditions)
     return new_df
+
+def make_geo_map(df):
+    ''' Creates a plotly scatter geo plot based on a DataFrame on Olympic data '''
+    import plotly.express as px
+    fig = px.scatter_geo(df, locations="iso_alpha",
+                        hover_name="country",
+                        size="mean",
+                        color="total",
+                        range_color=(0,3000),
+                        projection="natural earth"
+                        )
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}) # Zooms the map by default
+    fig.update_traces(dict(marker_line_width=0)) # Removes faded marker around bubbles (I didn't like them)
+    fig.update_geos(showland=True, landcolor="Green",showocean=True, oceancolor="LightBlue") # Changed colors for increased contrast
+
+    return fig
         
 def set_country_names(df):
     df["country"] = df["country"].apply(lambda x: adjust_country_name(x))
