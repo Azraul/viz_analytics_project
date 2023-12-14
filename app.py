@@ -2,10 +2,14 @@
 
 import pandas as pd
 from dash import Dash, dcc, html
+from functions import set_countries_alpha, clean_olympics
 
 data = (
     pd.read_csv("olympic_games.csv")
 )
+
+data = clean_olympics(data)
+data = set_countries_alpha(data, "country")
 
 app = Dash(__name__)
 
@@ -40,6 +44,18 @@ app.layout = html.Div(
                     },
                 ],
                 "layout": {"title": "Avocados Sold"},
+            },
+        ),
+        dcc.Graph(
+            figure={
+                "data": [
+                    {
+                        "x": data["host_city"],
+                        "y": data["games_type"],
+                        "type": "lines",
+                    },
+                ],
+                "layout": {"title": "Avocados solded"},
             },
         ),
     ]

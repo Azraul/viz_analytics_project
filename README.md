@@ -15,6 +15,10 @@ BDA 2023
 - Plotly-Express
 
 ### Reference
+- Develop Data Visualization Interfaces in Python With Dash
+- Dylan Castillo, 20.02.2023
+    - https://realpython.com/python-dash/
+
 - Integrate Plotly Dash Into Your Flask App
     - https://hackersandslackers.com/plotly-dash-with-flask/
 
