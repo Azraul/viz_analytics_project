@@ -91,17 +91,15 @@ def make_geo_map(df, selected_years, game_type=None):
     import plotly.express as px
     df = split_by_years(df, selected_years)
     df = geo_groupby(df, game_type=game_type)
-    fig = px.scatter_geo(df, locations="iso_alpha",
+    fig = px.choropleth(df, locations="iso_alpha",
                         hover_name="country",
                         hover_data=["golds", "silvers","bronzes"],
-                        size="total",
-                        color="mean",
-                        #range_color=(0,3000),
-                        projection="natural earth"
+                        color="total",
+                        color_continuous_scale=px.colors.sequential.deep,
                         )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}) # Zooms the map by default
     fig.update_traces(dict(marker_line_width=0)) # Removes faded marker around bubbles (I didn't like them)
-    fig.update_geos(showland=True, landcolor="Green",showocean=True, oceancolor="LightBlue") # Changed colors for increased contrast
+    fig.update_geos(showland=True,showocean=True, showcountries=True, oceancolor="LightBlue") # Changed colors for increased contrast
 
     return fig
         
@@ -139,8 +137,12 @@ def summer_winter_games(df):
     fig = px.pie(
         df,
         values=df.values,
-        names=df.keys()
+        color=df.keys(),
+        color_discrete_map={'Summer':'darkgreen',
+                            'Winter': 'lightcyan'}
         )
+    fig.update_layout(title=dict(text="Summer vs Winter games"))
+    fig.update_layout(showlegend=False)
     return fig
 
 def host_by_country(df):
@@ -153,6 +155,9 @@ def host_by_country(df):
         y=df["host_country"].value_counts(dropna=False),
         color=df["host_country"].unique()
         )
+    fig.update_layout(title=dict(text="Times Hosted by Country"), legend={"title":None})
+    fig.update_xaxes(showticklabels=False)
+    fig.update_layout(xaxis={"title":None},yaxis={"title": "Times Hosted"},)
     return fig
 
 
@@ -181,8 +186,13 @@ def pie_plot_medals(df, country=None, year=None):
     else:
         _df = df[medals].sum()
     
-    fig = px.pie(_df, values=_df.array, names=_df.keys())
-    fig.update_layout(legend={"title":"Medals"})
+    fig = px.pie(_df, values=_df.array, color=_df.keys(),
+                 color_discrete_map={
+                     'gold':'rgb(255, 215, 0)',
+                     'silver':'rgb(	192, 192, 192)',
+                     'bronze':'rgb(	205, 127, 50)',
+                     })
+    fig.update_layout(title=dict(text=f"{country}'s medals"), legend={"title":"Medals"})
     return fig
 
 def bar_distribution_maker(df, selected_years, game_type):
@@ -208,7 +218,7 @@ def bar_distribution_maker(df, selected_years, game_type):
         __df.columns = new_header
         fig.add_trace(go.Scatter(x=__df.T.index, y=__df.T[c], name=str(c)),secondary_y=secondary[i])
     
-    fig.update_layout(legend={"title":None})
+    fig.update_layout(title=dict(text="Atheletes, Teams and Compisitions"), legend={"title":None})
     fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
-    fig.update_layout(yaxis1={"title": "Athelets"},yaxis2={"title": "Teams & Competitions"},)
+    fig.update_layout(xaxis={"title":"Year"}, yaxis1={"title": "Athelets"},yaxis2={"title": "Teams & Competitions"},)
     return fig
