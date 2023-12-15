@@ -1,44 +1,41 @@
 # app.py
 
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import Dash, dcc, html, Input, Output, callback
 import functions
 
+# load the data
 data = (
     pd.read_csv("olympic_games.csv")
 )
 
-# Change names to iso names
+# Data cleaning and reshaping
 data = functions.set_country_names(data)
-# Grab iso codes
 data = functions.clean_olympics(data)
 data = functions.set_countries_alpha(data, "country")
-# Make a new column with total amount of medals per row
 data = functions.set_olympic_medals(data)
 
+# Initialize the app - incorporate a Dash Bootstrap theme
+app = Dash(__name__)
 
+# Custom variables
+title = '''
+# Olympic Games Dashboard
+Countries and medals from 1896 to 2022
+'''
+
+credits = '''
+Made by Kristoffer Kuvaja Adolfsson, Vizual Analytics 2023
+'''
 RadioButtons = ['All', 'Summer', 'Winter']
 
-# Initialize the app - incorporate a Dash Bootstrap theme
-external_stylesheets = [dbc.themes.CYBORG]
-app = Dash(__name__, external_stylesheets=external_stylesheets)
-
-# app = Dash(__name__)
-
-markdown_text = '''Made by Kristoffer Kuvaja Adolfsson, Vizual Analytics 2023'''
-
+# dash app layout, plain and simple html elements
 
 app.layout = html.Div(children=[
-    # Distribution of athletes, teams and competitions
+    dcc.Markdown(children=title, style={'textAlign': 'center'}),
+    # top div
     html.Div([
-        html.Div([
-            # Summer / Winter distribution
-            dcc.Graph(
-                id='host-country',
-                figure=functions.host_by_country(data)
-            ),
-        ], style={'width': '26%', 'display': 'inline-block'}),
+        # Distribution of athletes, teams and competitions
         html.Div([
             dcc.Graph(id='other_distributions'),
             "Pick Olympic Games type",
@@ -53,18 +50,27 @@ app.layout = html.Div(children=[
                 data['year'].max(),
                 value=[data['year'].min(), data['year'].max()],
                 marks=None,
-                tooltip={"placement": "bottom", "always_visible": True},
+                tooltip={"placement": "bottom",
+                         "always_visible": True},
                 id='year-slider'
             )
         ], style={'width': '32%', 'display': 'inline-block', }),
+        # Times hosted by country
+        html.Div([
+            dcc.Graph(
+                id='host-country',
+                figure=functions.host_by_country(data)
+            ),
+        ], style={'width': '26%', 'display': 'inline-block'}),
+        # Summer / Winter distribution
         html.Div([
             dcc.Graph(
                 id='summer-winter-games',
                 figure=functions.summer_winter_games(data)
             ),
         ], style={'width': '14%', 'display': 'inline-block'}),
+        # Medals by country
         html.Div([
-
             dcc.Dropdown(
                 data['country'].unique(),
                 value="Finland",
@@ -72,38 +78,40 @@ app.layout = html.Div(children=[
             ),            dcc.Graph(
                 id='country-1'
             ),
-        ], style={'width': '14%', 'display': 'inline-block'})]),
-    # Geo map
+        ], style={'width': '14%', 'display': 'inline-block'})
+    ]),
+    # bottom div
     html.Div([
-        html.H1(children='World map, medals per country',
-                style={'textAlign': 'center'}),
-
-        html.Div(children='''
+        # Geo map
+        html.Div([
+            html.H1(children='World map, medals per country',
+                    style={'textAlign': 'center'}),
+            html.Div(children='''
             Pick Olympic Games type and update the year using the options below
         ''', style={'textAlign': 'center'}),
-        dcc.RadioItems(
-            RadioButtons,
-            'All',
-            id='geo-game-type',
-            inline=True,
-            style={'textAlign': 'center'}),
-        dcc.RangeSlider(
-            data['year'].min(),
-            data['year'].max(),
-            value=[data['year'].min(), data['year'].max()],
-            marks=None,
-            tooltip={"placement": "bottom", "always_visible": True},
-            id='geo-year-slider'
-        )], style={'width': '50%', 'margin-left':'25%'}),
-    html.Div([
-        dcc.Graph(
-            id='geo_map'
-        ),
+            dcc.Graph(
+                id='geo_map'
+            ),
+            dcc.RadioItems(
+                RadioButtons,
+                'All',
+                id='geo-game-type',
+                inline=True,
+                style={'textAlign': 'center'}),
+            dcc.RangeSlider(
+                data['year'].min(),
+                data['year'].max(),
+                value=[data['year'].min(), data['year'].max()],
+                marks=None,
+                tooltip={"placement": "bottom", "always_visible": True},
+                id='geo-year-slider'
+            )], style={'width': '50%', 'margin-left': '25%'}),
+
     ]),
-    dcc.Markdown(children=markdown_text, style={'textAlign': 'center'})
+    dcc.Markdown(children=credits, style={'textAlign': 'center'})
 ])
 
-
+# dash callback functions for making figures
 @callback(
     Output('country-1', 'figure'),
     Input('country-select-1', 'value'))
@@ -136,4 +144,5 @@ def update_geo_map(game_type, selected_years):
     return fig
 
 
+# run the app
 app.run_server(debug=True)
