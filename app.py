@@ -17,6 +17,7 @@ data = functions.set_olympic_medals(data)
 
 # Initialize the app - incorporate a Dash Bootstrap theme
 app = Dash(__name__)
+app.title = 'Olympic Medals'
 
 # Custom variables
 title = '''
